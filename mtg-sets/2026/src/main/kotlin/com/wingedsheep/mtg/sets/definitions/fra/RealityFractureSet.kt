@@ -3,6 +3,7 @@ package com.wingedsheep.mtg.sets.definitions.fra
 import com.wingedsheep.mtg.sets.discovery.CardDiscovery
 import com.wingedsheep.sdk.limited.BoosterStrategy
 import com.wingedsheep.sdk.limited.EchoedPairsPlayBooster
+import com.wingedsheep.sdk.limited.LandSlot
 import com.wingedsheep.sdk.model.CardDefinition
 import com.wingedsheep.sdk.model.MtgSet
 import com.wingedsheep.sdk.model.Printing
@@ -36,6 +37,27 @@ object RealityFractureSet : MtgSet {
 
     /** Every Play Booster opens one complete echoed pair plus an echoed card from another pair. */
     override val boosterStrategy: BoosterStrategy by lazy { EchoedPairsPlayBooster(echoedPairs = ECHOED_PAIRS) }
+
+    /**
+     * Paper land slot: a common dual land 54.5% of the time, otherwise a basic land. Odds from
+     * taw/magic-search-engine `data/boosters/fra-play.yaml`, after Wizards' "Collecting" article
+     * for the set.
+     */
+    override val boosterLandSlot: LandSlot = LandSlot(
+        nonbasicLands = setOf(
+            "Dedicated Commons",
+            "Fatehold Annex",
+            "Formidable Commons",
+            "Innovative Commons",
+            "Konstrari Annex",
+            "Meticulous Commons",
+            "Stingerquill Annex",
+            "Theorix Annex",
+            "Transformative Commons",
+            "Vigorbloom Annex",
+        ),
+        nonbasicChance = 30.0 / 55,
+    )
 
     private const val CARDS_PACKAGE = "com.wingedsheep.mtg.sets.definitions.fra.cards"
 

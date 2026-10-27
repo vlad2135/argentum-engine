@@ -1,6 +1,7 @@
 package com.wingedsheep.mtg.sets.definitions.hob
 
 import com.wingedsheep.mtg.sets.discovery.CardDiscovery
+import com.wingedsheep.sdk.limited.LandSlot
 import com.wingedsheep.sdk.model.CardDefinition
 import com.wingedsheep.sdk.model.MtgSet
 import com.wingedsheep.sdk.model.Printing
@@ -110,6 +111,22 @@ object TheHobbitSet : MtgSet {
             name = "Treasure",
             imageUri = "https://cards.scryfall.io/normal/front/d/1/d1892b78-7663-4cbd-a732-9a4b0b18d4c8.jpg?1785498054",
         ),
+    )
+
+    /**
+     * Paper land slot: a common dual land 50% of the time, otherwise a basic land. Odds from
+     * taw/magic-search-engine `data/boosters/hob-play.yaml`, after Wizards' "Collecting" article
+     * for the set.
+     */
+    override val boosterLandSlot: LandSlot = LandSlot(
+        nonbasicLands = setOf(
+            "Elvenking's Halls",
+            "Goblin-town",
+            "Iron Hills",
+            "Lake-town",
+            "Mirkwood",
+        ),
+        nonbasicChance = 0.5,
     )
 
     private const val CARDS_PACKAGE = "com.wingedsheep.mtg.sets.definitions.hob.cards"

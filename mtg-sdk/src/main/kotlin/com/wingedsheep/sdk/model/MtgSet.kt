@@ -1,6 +1,7 @@
 package com.wingedsheep.sdk.model
 
 import com.wingedsheep.sdk.limited.BoosterStrategy
+import com.wingedsheep.sdk.limited.LandSlot
 import com.wingedsheep.sdk.limited.PlayBooster
 import com.wingedsheep.sdk.limited.StandardBooster
 
@@ -61,6 +62,14 @@ interface MtgSet {
                 else -> StandardBooster()
             }
         }
+
+    /**
+     * The set's booster land slot when it holds nonbasic lands (e.g. a cycle of common duals), or
+     * null when the slot is basics-only. A basics-only slot is dropped — basics are supplied at deck
+     * building — while a [LandSlot] keeps the whole slot, basics included, and keeps its nonbasic
+     * lands out of the other slots. Applies only when packs use the set's own [boosterStrategy].
+     */
+    val boosterLandSlot: LandSlot? get() = null
 
     /**
      * If this set has no basic lands of its own, the code of the set whose lands should be

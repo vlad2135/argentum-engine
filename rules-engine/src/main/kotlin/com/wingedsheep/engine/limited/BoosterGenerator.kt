@@ -1,6 +1,7 @@
 package com.wingedsheep.engine.limited
 
 import com.wingedsheep.sdk.limited.BoosterStrategy
+import com.wingedsheep.sdk.limited.LandSlot
 import com.wingedsheep.sdk.limited.StandardBooster
 import com.wingedsheep.sdk.model.BasicLandArt
 import com.wingedsheep.sdk.model.CardDefinition
@@ -15,6 +16,9 @@ import kotlin.random.Random
  * sets (Shards of Alara, 2008, onward) drop to 10 commons, and Play-Booster-era sets
  * (Murders at Karlov Manor, 2024, onward) use [com.wingedsheep.sdk.limited.PlayBooster].
  * Sets can override with custom strategies (guaranteed legendary, commander draft).
+ *
+ * Land slots are dropped unless a set declares a [LandSlot] (its paper land slot holds nonbasic
+ * lands); the generator then adds that slot to whatever its strategy produced.
  *
  * ## Scope
  *
@@ -72,6 +76,8 @@ class BoosterGenerator(
         /** Set release date in ISO `YYYY-MM-DD` form, or null if unknown. Used by clients to sort sets chronologically. */
         val releaseDate: String? = null,
         val boosterStrategy: BoosterStrategy = StandardBooster(),
+        /** See [com.wingedsheep.sdk.model.MtgSet.boosterLandSlot]. Null drops the land slot. */
+        val landSlot: LandSlot? = null,
         /**
          * Per-printing rows the set contributes (typically [com.wingedsheep.sdk.model.MtgSet.printings]).
          * Only the alternate-frame entries among these are eligible for the variant slot; canonical
@@ -213,7 +219,12 @@ class BoosterGenerator(
         val setConfig = availableSets[setCode]
             ?: throw IllegalArgumentException("Unknown set code: $setCode")
         val effectiveStrategy = strategy ?: setConfig.boosterStrategy
-        val generated = effectiveStrategy.generate(boosterPool(setConfig.cards, bannedCardNames), Random.Default)
+        val generated = generatePack(
+            effectiveStrategy,
+            boosterPool(setConfig.cards, bannedCardNames),
+            landSlotSet = setConfig.takeIf { strategy == null },
+            Random.Default,
+        )
         return applyVariantPrintings(generated, setConfig.printings, setConfig.variantChance, Random.Default)
     }
 
@@ -250,7 +261,12 @@ class BoosterGenerator(
         if (chaos || setConfigs.any { it.incomplete }) {
             val combinedCards = setConfigs.flatMap { it.cards }
             val effectiveStrategy = strategy ?: combinedPoolStrategy(setConfigs)
-            return effectiveStrategy.generate(boosterPool(combinedCards, bannedCardNames), Random.Default)
+            return generatePack(
+                effectiveStrategy,
+                boosterPool(combinedCards, bannedCardNames),
+                combinedLandSlotSet(setConfigs, strategy),
+                Random.Default,
+            )
         }
 
         // Pick a random set and generate a booster from it
@@ -320,7 +336,8 @@ class BoosterGenerator(
             val combinedCards = setConfigs.flatMap { it.cards }
             val combinedStrategy = strategy ?: combinedPoolStrategy(setConfigs)
             val combinedPool = boosterPool(combinedCards, bannedCardNames)
-            return (1..boosterCount).flatMap { combinedStrategy.generate(combinedPool, Random.Default) }
+            val landSlotSet = combinedLandSlotSet(setConfigs, strategy)
+            return (1..boosterCount).flatMap { generatePack(combinedStrategy, combinedPool, landSlotSet, Random.Default) }
         }
 
         // Use seeded random for deterministic distribution, or default random
@@ -380,7 +397,8 @@ class BoosterGenerator(
             val totalBoosters = boosterDistribution.values.sum()
             val combinedStrategy = strategy ?: combinedPoolStrategy(setConfigs)
             val combinedPool = boosterPool(combinedCards, bannedCardNames)
-            return (1..totalBoosters).flatMap { combinedStrategy.generate(combinedPool, Random.Default) }
+            val landSlotSet = combinedLandSlotSet(setConfigs, strategy)
+            return (1..totalBoosters).flatMap { generatePack(combinedStrategy, combinedPool, landSlotSet, Random.Default) }
         }
 
         // Generate boosters per set according to distribution
@@ -405,12 +423,14 @@ class BoosterGenerator(
     fun getBasicLands(setCode: String): Map<String, CardDefinition> {
         val setConfig = availableSets[setCode]
             ?: throw IllegalArgumentException("Unknown set code: $setCode")
+        return standardBasicLands(setConfig)
+    }
 
-        return setConfig.basicLands
+    private fun standardBasicLands(setConfig: SetConfig): Map<String, CardDefinition> =
+        setConfig.basicLands
             .filter { it.metadata.inBooster }
             .groupBy { it.name }
             .mapValues { (_, variants) -> variants.minWith(BasicLandArt.standardFirst) }
-    }
 
     /**
      * [getBasicLands] for a multi-set pool: the basics come from the first set that prints any, so
@@ -436,6 +456,30 @@ class BoosterGenerator(
      */
     private fun combinedPoolStrategy(setConfigs: List<SetConfig>): BoosterStrategy =
         setConfigs.singleOrNull()?.boosterStrategy ?: StandardBooster()
+
+    /**
+     * The set whose land slot the combined-pool path honors: like [combinedPoolStrategy], only a
+     * lone set using its own strategy keeps its slot; a multi-set mix or an explicit strategy has none.
+     */
+    private fun combinedLandSlotSet(setConfigs: List<SetConfig>, strategy: BoosterStrategy?): SetConfig? =
+        if (strategy == null) setConfigs.singleOrNull() else null
+
+    /**
+     * One pack: [strategy]'s slots plus [landSlotSet]'s land slot, when it declares one. The slot's
+     * nonbasic lands are withheld from [strategy] — in paper they are only opened in the land slot —
+     * and its basics are the set's standard printings, the same ones deck building hands out.
+     */
+    private fun generatePack(
+        strategy: BoosterStrategy,
+        pool: List<CardDefinition>,
+        landSlotSet: SetConfig?,
+        random: Random,
+    ): List<CardDefinition> {
+        val landSlot = landSlotSet?.landSlot ?: return strategy.generate(pool, random)
+        val (slotLands, rest) = pool.partition { it.name in landSlot.nonbasicLands }
+        val land = landSlot.pick(slotLands, standardBasicLands(landSlotSet).values.toList(), random)
+        return strategy.generate(rest, random) + listOfNotNull(land)
+    }
 
     /**
      * Strip basic lands, meld results, and non-booster cards (Special Guests / The List / promos),

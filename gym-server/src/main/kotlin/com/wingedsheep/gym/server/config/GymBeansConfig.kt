@@ -80,4 +80,5 @@ private fun MtgSet.toBoosterSetConfig(): BoosterGenerator.SetConfig =
         incomplete = incomplete,
         block = block,
         boosterStrategy = boosterStrategy,
+        landSlot = boosterLandSlot,
     )

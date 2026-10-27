@@ -12,13 +12,14 @@ import kotlin.random.Random
  *  - Slots 8–10: 3 uncommons
  *  - Slot 11: non-foil wildcard of any rarity
  *  - Slot 12: rare or mythic rare (12.5% mythic)
- *  - Slot 13: basic land
+ *  - Slot 13: land (basic, or in many sets a common nonbasic land)
  *  - Slot 14: traditional-foil wildcard of any rarity
  *
  * Engine adaptation: foils, The List, and Special Guests are not modeled, so both
- * wildcard slots are plain weighted-rarity slots; the basic-land slot is omitted
- * because the generator strips basic lands from the pool and supplies them
- * separately at deck building. Net result: 13 playable non-land cards per pack.
+ * wildcard slots are plain weighted-rarity slots. The land slot is not part of this
+ * strategy: the generator adds it for sets that declare a [LandSlot] and otherwise
+ * drops it (basics are supplied at deck building). Net result: 13 cards, plus the
+ * land slot where a set has one.
  *
  * Wildcard rarity weights approximate WotC's published pack-level odds (~37% of
  * packs carry a second rare/mythic and ~4% a third → ~20% rare-or-mythic per

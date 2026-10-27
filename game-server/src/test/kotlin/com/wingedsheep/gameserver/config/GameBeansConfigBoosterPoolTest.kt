@@ -6,6 +6,7 @@ import com.wingedsheep.sdk.model.Rarity
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.maps.shouldContainKey
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -40,6 +41,24 @@ class GameBeansConfigBoosterPoolTest : FunSpec({
             val names = boosterGenerator.generateBooster("FRA").map { it.name }.toSet()
             val pairs = strategy.echoedPairs.filter { it.first in names && it.second in names }
             withClue("pack $names has no echoed pair") { pairs.size shouldBeGreaterThan 0 }
+        }
+    }
+
+    test("Reality Fracture packs open their common duals only in the land slot") {
+        val slotLands = boosterGenerator.availableSets["FRA"].shouldNotBeNull().landSlot.shouldNotBeNull().nonbasicLands
+        repeat(200) {
+            val pack = boosterGenerator.generateBooster("FRA")
+            pack shouldHaveSize 14
+            pack.count { it.typeLine.isBasicLand || it.name in slotLands } shouldBe 1
+        }
+    }
+
+    test("every declared land slot names cards in its set's booster pool") {
+        // A misspelt name would silently shrink the slot, or drop it once none match.
+        for ((setCode, setConfig) in boosterGenerator.availableSets) {
+            val slot = setConfig.landSlot ?: continue
+            val poolNames = setConfig.cards.mapTo(hashSetOf()) { it.name }
+            withClue(setCode) { (slot.nonbasicLands - poolNames) shouldBe emptySet() }
         }
     }
 

@@ -152,6 +152,11 @@ Optional overrides commonly used by real sets:
   onward gets the modern `PlayBooster` division (7C / 3U / 1R-or-mythic at 12.5% / 2
   any-rarity wildcards — 13 cards, since the engine has no foils and supplies basics at
   deck building).
+- `boosterLandSlot = LandSlot(nonbasicLands = setOf(…), nonbasicChance = …)` — declare it when
+  the set's paper land slot holds nonbasic lands (usually a cycle of common duals), not just
+  basics. The generator then keeps the slot, basics included (+1 card per pack), and opens those
+  lands only there. A basics-only slot needs nothing: it is dropped. Take the lands and odds from
+  the set's "Collecting …" article, or taw/magic-search-engine's `data/boosters/<set>-play.yaml`.
 - `printings: List<Printing>` — register reprints whose canonical `CardDefinition` lives in an
   earlier set.
 - `extensionSet = true` — mark a bonus sheet / supplemental release (e.g. The Big Score alongside

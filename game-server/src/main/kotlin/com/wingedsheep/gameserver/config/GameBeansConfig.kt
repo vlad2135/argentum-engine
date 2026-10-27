@@ -256,6 +256,7 @@ private fun MtgSet.toBoosterSetConfig(
         block = block,
         releaseDate = releaseDate,
         boosterStrategy = boosterStrategy,
+        landSlot = boosterLandSlot,
         // Printing rows also drive the set-picker count. Keep only treatments for cards in the
         // default booster pool; optional product printings are counted in their product rows.
         printings = printings.filter { it.name in defaultPoolNames },
